@@ -9,10 +9,13 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattServer;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+
+import java.util.List;
 
 public class BluetoothLeService extends Service {
     private BluetoothManager bleManager;
@@ -21,6 +24,11 @@ public class BluetoothLeService extends Service {
     private String bleDeviceAddress;
     private BluetoothGatt bleGatt;
 
+    public final static String ACTION_GATT_CONNECTED = "com.asuscomm.mymeanderings.blecontroller.ACTION_GATT_CONNECTED";
+    public final static String ACTION_GATT_SERVICES_DISCOVERED = "com.asuscomm.mymeanderings.blecontroller.ACTION_GATT_SERVICES_DISCOVERED";
+    public final static String ACTION_DATA_AVAILABLE = "com.asuscomm.mymeanderings.blecontroller.ACTION_DATA_AVAILABLE";
+    public final static String EXTRA_DATA = "com.asuscomm.mymeanderings.blecontroller.EXTRA_DATA";
+
     private static final String TAG = BluetoothLeService.class.getSimpleName();
 
     public BluetoothLeService() {
@@ -28,14 +36,20 @@ public class BluetoothLeService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
+        return mBinder;
     }
 
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            super.onConnectionStateChange(gatt, status, newState);
+            String intentAction;
+            if (newState == BluetoothProfile.STATE_CONNECTED)
+            {
+                intentAction = ACTION_GATT_CONNECTED;
+                bleGatt.discoverServices();
+
+                broadcastUpdate(intentAction);
+            }
         }
 
         @Override
@@ -44,6 +58,7 @@ public class BluetoothLeService extends Service {
             {
                 for (BluetoothGattService service : gatt.getServices())
                 {
+                    broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
                     Log.d(TAG, "Service: " + service.getUuid().toString());
                 }
             }
@@ -62,7 +77,7 @@ public class BluetoothLeService extends Service {
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            super.onCharacteristicChanged(gatt, characteristic);
+            broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
         }
     };
 
@@ -75,6 +90,7 @@ public class BluetoothLeService extends Service {
             return false;
         }
 
+        Log.d(TAG, "Connecting to the device.");
         bleGatt = device.connectGatt(this, false, gattCallback);
         return false;
     }
@@ -105,5 +121,48 @@ public class BluetoothLeService extends Service {
         }
 
         return true;
+    }
+
+    public List<BluetoothGattService> getSupportedGattServices() {
+        if (bleGatt == null) return null;
+        Log.d(TAG, "Attempting to discover services.");
+        return bleGatt.getServices();
+    }
+
+    private void broadcastUpdate(final String action)
+    {
+        final Intent intent = new Intent(action);
+        sendBroadcast(intent);
+    }
+
+    private void broadcastUpdate(final String action,
+                                 final BluetoothGattCharacteristic characteristic) {
+        final Intent intent = new Intent(action);
+
+        // For all other profiles, writes the data formatted in HEX.
+        final byte[] data = characteristic.getValue();
+        if (data != null && data.length > 0) {
+            final StringBuilder stringBuilder = new StringBuilder(data.length);
+            for(byte byteChar : data)
+                stringBuilder.append(String.format("%02X ", byteChar));
+            intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+        }
+        sendBroadcast(intent);
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        close();
+        return super.onUnbind(intent);
+    }
+
+    private final IBinder mBinder = new LocalBinder();
+
+    public void close() {
+        if (bleGatt == null) {
+            return;
+        }
+        bleGatt.close();
+        bleGatt = null;
     }
 }

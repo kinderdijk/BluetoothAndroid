@@ -25,10 +25,11 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity {
 
     private Button startScanningButton;
+    private Button controlButton;
     private ListView listView;
     private ArrayAdapter listContentAdaptor;
     private boolean isScanning = false;
-    private int SCAN_DURATION = 10000;
+    private int SCAN_DURATION = 5000;
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private BluetoothManager bleManager;
@@ -57,6 +58,31 @@ public class MainActivity extends AppCompatActivity {
 
         listContentAdaptor = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, bleDeviceAddress);
         listView.setAdapter(listContentAdaptor);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
+            {
+                // Connect to the device that has been clicked.
+                final String deviceAddress = bleDeviceAddress.get(position);
+                final BluetoothDevice device = bleDeviceMap.get(deviceAddress);
+
+                if (device == null)
+                    return;
+
+                Intent intent = new Intent(getApplicationContext(), DeviceControlActivity.class);
+                intent.putExtra(DeviceControlActivity.DEVICE_ADDRESS, device.getAddress());
+                intent.putExtra(DeviceControlActivity.DEVICE_NAME, device.getName());
+
+                // If scanning, stop.
+                if (isScanning)
+                {
+                    bleAdaptor.stopLeScan(scannerCallback);
+                    isScanning = false;
+                }
+
+                startActivity(intent);
+            }
+        });
 
         startScanningButton = (Button) findViewById(R.id.scan_button);
         startScanningButton.setOnClickListener(new View.OnClickListener() {
@@ -77,28 +103,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        controlButton = (Button) findViewById(R.id.control_button);
+        controlButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
-            {
-                // Connect to the device that has been clicked.
-                final String deviceAddress = bleDeviceAddress.get(position);
-                final BluetoothDevice device = bleDeviceMap.get(deviceAddress);
-
-                if (device == null)
-                    return;
-
-                Intent intent = new Intent(MainActivity.this, DeviceControlActivity.class);
-                intent.putExtra(DeviceControlActivity.DEVICE_ADDRESS, device.getAddress());
-                intent.putExtra(DeviceControlActivity.DEVICE_NAME, device.getName());
-
-                // If scanning, stop.
-                if (isScanning)
-                {
-                    bleAdaptor.stopLeScan(scannerCallback);
-                    isScanning = false;
-                }
-
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), JoystickControlActivity.class);
                 startActivity(intent);
             }
         });

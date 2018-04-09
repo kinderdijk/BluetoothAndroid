@@ -27,7 +27,10 @@
         <service
             android:name=".BluetoothLeService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
+
+        <activity android:name=".JoystickControlActivity"
+            android:screenOrientation="landscape"></activity>
     </application>
 
 </manifest>
