@@ -146,6 +146,11 @@ public class DeviceControlActivity extends AppCompatActivity {
             String uuid = service.getUuid().toString();
             currentGattServiceList.add(uuid);
 
+            if (bleService.RC_SERVICE_UUID.toString().equals(uuid))
+            {
+                Log.d(TAG, "Found the service we were looking for.");
+            }
+
             List<BluetoothGattCharacteristic> gattServiceCharacteristics = service.getCharacteristics();
 
             for(BluetoothGattCharacteristic characteristic : gattServiceCharacteristics)

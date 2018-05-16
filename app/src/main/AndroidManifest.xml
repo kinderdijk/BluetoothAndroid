@@ -30,7 +30,8 @@
             android:exported="true" />
 
         <activity android:name=".JoystickControlActivity"
-            android:screenOrientation="landscape"></activity>
+            android:screenOrientation="landscape">
+        </activity>
     </application>
 
 </manifest>

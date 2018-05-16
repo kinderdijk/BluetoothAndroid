@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothManager bleManager;
     private BluetoothAdapter bleAdaptor;
     private List<String> bleDeviceAddress;
+    private List<String> bleDeviceNameList;
     private Map<String, BluetoothDevice> bleDeviceMap;
 
     private Handler handler;
@@ -97,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 else
                 {
                     bleScanning(false);
-                    startScanningButton.setText("Start Scanning");
+                    startScanningButton.setText("Scan");
                 }
 
             }
@@ -144,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
                 {
                     isScanning = false;
                     bleAdaptor.stopLeScan(scannerCallback);
-                    startScanningButton.setText("Start Scanning");
+                    startScanningButton.setText("Scan");
                 }
             }, SCAN_DURATION);
 
